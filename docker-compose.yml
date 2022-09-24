@@ -1,0 +1,42 @@
+# 定义docker compose yaml所使用的版本
+version: '3.9'
+
+
+# docker服务
+services:
+  app:
+    # 告诉docker建造路径
+    build:
+      context: .
+    command: >
+      sh -c "python manage.py wait_for_db &&
+             python manage.py migrate &&
+             python manage.py runserver 0.0.0.0:8000"
+    # 右边的8000代表docker内部的端口,左边8000代表当前机器的8000端口
+    # 把容器内的8000端口接到当前机器的8000端口
+    ports:
+      - 8000:8000
+    # 把容器内的"/app"路径链接到当前机器的app文件夹路径,这样可以共享文件
+    volumes:
+      - ./app:/app
+      - ./data/web:/vol/web
+    # 自定义环境值对照django app settings.py文件内的值,这边可以把想要的值传入docker
+    environment:
+      - SECRET_KEY=devsecretkey
+      - DEBUG=1
+      # db设定值应该与postgres里的设定相同
+      - DB_HOST=db
+      - DB_NAME=devdb
+      - DB_USER=devuser
+      - DB_PASS=changeme
+    depends_on:
+      - db
+
+  db:
+    # 给django添加postgres数据库
+    image: postgres:13-alpine
+    environment:
+      - POSTGRES_DB=devdb
+      - POSTGRES_USER=devuser
+      - POSTGRES_PASSWORD=changeme
+    
