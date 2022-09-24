@@ -8,6 +8,7 @@ ENV PYTHONUNBUFFERED 1
 # 复制本地的一些文件到docker内的路径下
 COPY ./requirements.txt /requirements.txt
 COPY ./app /app
+COPY ./scripts /scripts
 
 # 设定docker的初始运行路径
 WORKDIR /app
@@ -23,16 +24,20 @@ RUN python -m venv /py && \
     /py/bin/pip install --upgrade pip && \
     apk add --update --no-cache postgresql-client && \
     apk add --update --no-cache --virtual .tmp-deps \
-        build-base postgresql-dev musl-dev && \
+        build-base postgresql-dev musl-dev linux-headers && \
     /py/bin/pip install -r /requirements.txt && \
     apk del .tmp-deps && \
     adduser --disabled-password --no-create-home app && \
     mkdir -p /vol/web/static && \
     mkdir -p /vol/web/media && \
-    chmod -R 755 /wol
+    chown -R app:app /vol && \
+    chmod -R 755 /vol && \
+    chmod -R +x /scripts
     
 # 添加环境路径,这样docker运行命令时不用添加路径
-ENV PATH="/py/bin:$PATH"
+ENV PATH="/scripts:/py/bin:$PATH"
 
 # 这条命令后,docker会以user的身份运行,减少docker权限,提高docker安全性
 USER app
+
+CMD ["run.sh"]
